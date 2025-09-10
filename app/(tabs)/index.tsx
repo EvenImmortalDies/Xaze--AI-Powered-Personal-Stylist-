@@ -27,7 +27,7 @@ export default function App() {
 
   return (
     <ScrollView style={{ flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 22, marginBottom: 15 }}>Product</Text>
+      <Text style={{ fontSize: 22, marginBottom: 15 }}>Products</Text>
       {products.length === 0 ? (
         <Text>No products found</Text>
       ) : (
