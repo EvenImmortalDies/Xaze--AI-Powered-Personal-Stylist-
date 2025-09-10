@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 
 // 🔑 Supabase credentials
 const supabaseUrl = "https://xetomtmbtiqwfisynrrl.supabase.co";
@@ -27,7 +27,7 @@ export default function App() {
 
   return (
     <ScrollView style={{ flex: 1, padding: 20 }}>
-      <Text style={{ fontSize: 22, marginBottom: 15 }}>Products</Text>
+      <Text style={{ fontSize: 22, marginBottom: 15 }}>Product</Text>
       {products.length === 0 ? (
         <Text>No products found</Text>
       ) : (
