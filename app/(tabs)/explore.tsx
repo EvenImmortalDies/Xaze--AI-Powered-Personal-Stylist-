@@ -1,174 +1,152 @@
-import { createClient } from '@supabase/supabase-js';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import axios from 'axios';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-// 🔑 Supabase credentials
-const supabaseUrl = "https://xetomtmbtiqwfisynrrl.supabase.co";
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhldG9tdG1idGlxd2Zpc3lucnJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg5NDMsImV4cCI6MjA3MjkyNDk0M30.eJNpLnTwzLyCIEVjwSzh3K1N4Y0mA9HV914pY6q3nRo";
+const App = () => {
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const chatMessagesRef = useRef(null);
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  useEffect(() => {
+    setMessages([{
+      id: Math.random().toString(36).substring(7),
+      text: "👋 Hi, I'm Gemini AI. Ask me anything!",
+      user: { id: 2, name: "Gemini" },
+    }]);
+  }, []);
 
-export default function App() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  useEffect(() => {
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+    }
+  }, [messages]);
 
-  const fetchProducts = async () => {
-    console.log("Attempting to fetch data from Supabase...");
+  const onSend = useCallback(async () => {
+    if (!inputMessage.trim()) return;
+
+    const newUserMessage = {
+      id: Math.random().toString(36).substring(7),
+      text: inputMessage,
+      user: { id: 1 },
+    };
+
+    setMessages(prev => [...prev, newUserMessage]);
+    setInputMessage('');
+    setIsLoading(true);
+
+    const apiKey = "AIzaSyCA6DjyXomC-P_cRNvgaxYVeAFqBaZg5Hk";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
     try {
-      // Correcting the column name to "image_url1"
-      const { data, error } = await supabase.from("products").select("*, image_url1");
-      if (error) {
-        setError(error.message);
-        console.error("Supabase fetch error:", error);
-      } else {
-        setProducts(data);
-        setError(null);
-        console.log("Successfully fetched products:", data.length);
-      }
-    } catch (e) {
-      setError("An unexpected error occurred during fetch. This may be a network issue.");
-      console.error("Unexpected fetch error:", e);
+      const response = await axios.post(apiUrl, {
+        contents: [{ parts: [{ text: inputMessage }] }],
+      });
+
+      const aiReply = response.data.candidates?.[0]?.content?.parts?.[0]?.text 
+        || "Sorry, I didn’t understand.";
+
+      const botMessage = {
+        id: Math.random().toString(36).substring(7),
+        text: aiReply,
+        user: { id: 2, name: "Gemini" },
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error("Error:", error);
+      setMessages(prev => [...prev, {
+        id: Math.random().toString(36).substring(7),
+        text: "⚠️ Network error, please try again.",
+        user: { id: 2, name: "Gemini" },
+      }]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+    }
+  }, [inputMessage]);
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !isLoading) {
+      onSend();
     }
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const renderProductItem = ({ item }) => {
-    // Check if the image_url1 property exists and has a value
-    const imageUrl = item.image_url1 || 'https://via.placeholder.com/150';
-
-    return (
-      <View style={styles.productCard}>
-        {/* The image is now displayed using the correct column name */}
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.productImage}
-        />
-        <View style={styles.productDetails}>
-          <Text style={styles.productName}>{item.name}</Text>
-          <Text style={styles.productPrice}>₹{item.price}</Text>
-          <Text style={styles.productBrand}>Brand: {item.brand}</Text>
-          <Text style={styles.productCategory}>Category: {item.category}</Text>
-        </View>
-      </View>
-    );
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text style={styles.statusText}>Loading products...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.statusText}>Error:</Text>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Products from Supabase</Text>
-      {products.length === 0 ? (
-        <Text style={styles.noProductsText}>No products found.</Text>
-      ) : (
-        <FlatList
-          data={products}
-          keyExtractor={(item) => item.id}
-          renderItem={renderProductItem}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
-    </View>
-  );
-}
+    <div className="flex flex-col h-screen bg-gradient-to-br from-gray-100 via-white to-gray-200">
+      <style>
+        {`
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+          body {
+            font-family: 'Inter', sans-serif;
+          }
+        `}
+      </style>
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#f0f4f7',
-  },
-  header: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#1a202c',
-    marginBottom: 20,
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  productCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  productImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    marginRight: 15,
-    resizeMode: 'cover',
-  },
-  productDetails: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#2d3748',
-    marginBottom: 4,
-  },
-  productPrice: {
-    fontSize: 16,
-    color: '#4c7c8b',
-    marginBottom: 4,
-  },
-  productBrand: {
-    fontSize: 14,
-    color: '#718096',
-  },
-  productCategory: {
-    fontSize: 14,
-    color: '#718096',
-  },
-  statusText: {
-    fontSize: 18,
-    marginTop: 20,
-    color: '#555',
-    textAlign: 'center',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#e53e3e',
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  noProductsText: {
-    fontSize: 18,
-    color: '#718096',
-    textAlign: 'center',
-    marginTop: 50,
-  },
-  listContent: {
-    paddingBottom: 20,
-  }
-});
+      {/* Header */}
+      <div className="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 shadow-md flex items-center space-x-3">
+        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center font-bold text-indigo-600">G</div>
+        <h1 className="text-white font-semibold text-lg">Gemini Chat</h1>
+      </div>
+
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={chatMessagesRef}>
+        {messages.map(msg => (
+          <div
+            key={msg.id}
+            className={`flex ${msg.user.id === 1 ? 'justify-end' : 'justify-start'}`}
+          >
+            <div className={`
+              max-w-xs sm:max-w-md md:max-w-lg transition-all
+              p-4 rounded-2xl shadow-md text-sm leading-relaxed
+              ${msg.user.id === 1 
+                ? 'bg-indigo-600 text-white rounded-br-none' 
+                : 'bg-white text-gray-800 rounded-bl-none border border-gray-200'}
+            `}>
+              {msg.text}
+            </div>
+          </div>
+        ))}
+
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="p-4 rounded-2xl shadow-sm bg-white text-gray-800 rounded-bl-none border border-gray-200">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input Box */}
+      <div className="flex items-center p-4 bg-white rounded-t-2xl shadow-lg">
+        <input
+          type="text"
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onKeyPress={handleKeyPress}
+          className="flex-1 p-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="Type your message..."
+          disabled={isLoading}
+        />
+        <button
+          onClick={onSend}
+          disabled={isLoading || !inputMessage.trim()}
+          className={`
+            ml-3 p-3 rounded-full transition-all duration-200
+            ${isLoading || !inputMessage.trim() 
+              ? 'bg-gray-300 cursor-not-allowed' 
+              : 'bg-indigo-600 hover:bg-indigo-700 shadow-md hover:shadow-lg'}
+          `}
+        >
+          <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.285 1.39l6.609-2.204 3.385 4.643a1 1 0 001.63-1.166l-3.385-4.643 6.609-2.204a1 1 0 00-.745-1.816l-14-4z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default App;
