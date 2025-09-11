@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -8,7 +8,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 
@@ -17,13 +17,10 @@ const supabaseUrl = "https://xetomtmbtiqwfisynrrl.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhldG9tdG1idGlxd2Zpc3lucnJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg5NDMsImV4cCI6MjA3MjkyNDk0M30.eJNpLnTwzLyCIEVjwSzh3K1N4Y0mA9HV914pY6q3nRo";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Reusable Chip Component for multiple-choice selections
+// Reusable Chip Component for single-select
 const Chip = ({ label, isSelected, onPress }) => (
   <TouchableOpacity
-    style={[
-      styles.chip,
-      isSelected ? styles.activeChip : styles.inactiveChip,
-    ]}
+    style={[styles.chip, isSelected ? styles.activeChip : styles.inactiveChip]}
     onPress={onPress}
   >
     <Text
@@ -53,39 +50,66 @@ export default function SignupScreen() {
     marketplace: '',
     styles: '',
   });
+  const [currentStep, setCurrentStep] = useState(1);
+  const [skinToneValue, setSkinToneValue] = useState(0); // 0: Fair, 1: Medium, 2: Dark
+
+  const skinTones = ['Fair', 'Medium', 'Dark'];
+  const skinColors = ['#FFDAB9', '#D2B48C', '#8B4513']; // Approximate skin tone colors
+
+  const handleChipPress = (key, value) => {
+    setFormData({ ...formData, [key]: value });
+  };
+
+  const validateStep = () => {
+    if (currentStep === 1) {
+      return (
+        formData.email &&
+        formData.password &&
+        formData.confirmPassword &&
+        formData.password === formData.confirmPassword
+      );
+    } else if (currentStep === 2) {
+      return formData.age && formData.gender && formData.occupation;
+    } else if (currentStep === 3) {
+      return formData.bodyShape && formData.bodySize && formData.skinTone;
+    } else if (currentStep === 4) {
+      return formData.marketplace && formData.styles;
+    }
+    return false;
+  };
+
+  const handleNext = () => {
+    if (validateStep()) {
+      if (currentStep === 3) {
+        setFormData({ ...formData, skinTone: skinTones[skinToneValue] });
+      }
+      setCurrentStep(currentStep + 1);
+    } else {
+      Alert.alert(
+        'Error',
+        currentStep === 1
+          ? 'Please fill all fields and ensure passwords match'
+          : 'Please select all options'
+      );
+    }
+  };
+
+  const handleBack = () => {
+    setCurrentStep(currentStep - 1);
+  };
 
   const handleSignup = async () => {
-    // Check all fields are filled
-    if (
-      !formData.email ||
-      !formData.password ||
-      !formData.confirmPassword ||
-      !formData.age ||
-      !formData.gender ||
-      !formData.occupation ||
-      !formData.bodyShape ||
-      !formData.bodySize ||
-      !formData.skinTone ||
-      !formData.marketplace ||
-      !formData.styles
-    ) {
-      Alert.alert('Error', 'Please fill all fields');
-      return;
-    }
-    // Check if passwords match
-    if (formData.password !== formData.confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    if (!validateStep()) {
+      Alert.alert('Error', 'Please select all options');
       return;
     }
 
-    // Attempt to sign up with Supabase
     const { data, error } = await signUp(formData.email, formData.password);
     if (error) {
       Alert.alert('Signup failed', error.message);
       return;
     }
 
-    // Insert user profile data
     const { error: profileError } = await supabase.from('user_profiles').insert({
       email: formData.email,
       age: formData.age,
@@ -103,184 +127,193 @@ export default function SignupScreen() {
       return;
     }
 
-    // Success and navigate
     Alert.alert('Success', 'Account created and profile saved! Logging you in...');
     router.replace('/(tabs)');
   };
 
-  const handleChipPress = (key, value) => {
-    setFormData({
-      ...formData,
-      [key]: value,
-    });
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <>
+            <Text style={styles.title}>Account Details</Text>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              placeholder="Enter your email"
+              value={formData.email}
+              onChangeText={(text) => setFormData({ ...formData, email: text })}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={styles.input}
+              placeholderTextColor="#9ca3af"
+            />
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              placeholder="Create a password"
+              value={formData.password}
+              onChangeText={(text) => setFormData({ ...formData, password: text })}
+              secureTextEntry
+              style={styles.input}
+              placeholderTextColor="#9ca3af"
+            />
+            <Text style={styles.label}>Confirm Password</Text>
+            <TextInput
+              placeholder="Confirm your password"
+              value={formData.confirmPassword}
+              onChangeText={(text) =>
+                setFormData({ ...formData, confirmPassword: text })
+              }
+              secureTextEntry
+              style={styles.input}
+              placeholderTextColor="#9ca3af"
+            />
+          </>
+        );
+      case 2:
+        return (
+          <>
+            <Text style={styles.title}>Personal Info</Text>
+            <Text style={styles.label}>Age</Text>
+            <View style={styles.chipContainer}>
+              {['<18', '18-25', '26-35', '45+'].map((age) => (
+                <Chip
+                  key={age}
+                  label={age}
+                  isSelected={formData.age === age}
+                  onPress={() => handleChipPress('age', age)}
+                />
+              ))}
+            </View>
+            <Text style={styles.label}>Gender</Text>
+            <View style={styles.chipContainer}>
+              {['Male', 'Female', 'Other'].map((gender) => (
+                <Chip
+                  key={gender}
+                  label={gender}
+                  isSelected={formData.gender === gender}
+                  onPress={() => handleChipPress('gender', gender)}
+                />
+              ))}
+            </View>
+            <Text style={styles.label}>What do you do?</Text>
+            <View style={styles.chipContainer}>
+              {['College Student', 'Working Professional', 'School Student', 'Others'].map(
+                (occupation) => (
+                  <Chip
+                    key={occupation}
+                    label={occupation}
+                    isSelected={formData.occupation === occupation}
+                    onPress={() => handleChipPress('occupation', occupation)}
+                  />
+                )
+              )}
+            </View>
+          </>
+        );
+        case 3:
+          const maleBodyShapes = ['Rectangle', 'Inverted Triangle', 'Oval', 'Trapezoid'];
+          const femaleBodyShapes = ['Hourglass', 'Apple', 'Pear', 'Rectangle'];
+          const bodyShapes = formData.gender === 'Male' ? maleBodyShapes : femaleBodyShapes;
+        
+          return (
+            <>
+              <Text style={styles.title}>Body Details</Text>
+        
+              <Text style={styles.label}>Body Shape</Text>
+              <View style={styles.chipContainer}>
+                {bodyShapes.map((bodyShape) => (
+                  <Chip
+                    key={bodyShape}
+                    label={bodyShape}
+                    isSelected={formData.bodyShape === bodyShape}
+                    onPress={() => handleChipPress('bodyShape', bodyShape)}
+                  />
+                ))}
+              </View>
+        
+              <Text style={styles.label}>Body Size</Text>
+              <View style={styles.chipContainer}>
+                {['Small', 'Medium', 'Large'].map((bodySize) => (
+                  <Chip
+                    key={bodySize}
+                    label={bodySize}
+                    isSelected={formData.bodySize === bodySize}
+                    onPress={() => handleChipPress('bodySize', bodySize)}
+                  />
+                ))}
+              </View>
+        
+              <Text style={styles.label}>Skin Tone</Text>
+              <View style={styles.chipContainer}>
+                {['Very Fair', 'Fair', 'Medium', 'Tan', 'Dark'].map((tone) => (
+                  <Chip
+                    key={tone}
+                    label={tone}
+                    isSelected={formData.skinTone === tone}
+                    onPress={() => handleChipPress('skinTone', tone)}
+                  />
+                ))}
+              </View>
+            </>
+          );
+        
+      case 4:
+        return (
+          <>
+            <Text style={styles.title}>Preferences</Text>
+            <Text style={styles.label}>Preferred Marketplace</Text>
+            <View style={styles.chipContainer}>
+              {['Amazon', 'Flipkart', 'Meesho', 'Myntra', 'Ajio', 'The Soul Store'].map(
+                (marketplace) => (
+                  <Chip
+                    key={marketplace}
+                    label={marketplace}
+                    isSelected={formData.marketplace === marketplace}
+                    onPress={() => handleChipPress('marketplace', marketplace)}
+                  />
+                )
+              )}
+            </View>
+            <Text style={styles.label}>Preferred Styles</Text>
+            <View style={styles.chipContainer}>
+              {['Formal', 'Casual', 'Ethnic'].map((styles) => (
+                <Chip
+                  key={styles}
+                  label={styles}
+                  isSelected={formData.styles === styles}
+                  onPress={() => handleChipPress('styles', styles)}
+                />
+              ))}
+            </View>
+          </>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <Text style={styles.title}>Create your account</Text>
-        <Text style={styles.subtitle}>
-          Fill out your details to get started.
-        </Text>
-
-        {/* Email Input */}
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          placeholder="Enter your email"
-          value={formData.email}
-          onChangeText={(text) => setFormData({ ...formData, email: text })}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          style={styles.input}
-          placeholderTextColor="#9ca3af"
-        />
-
-        {/* Password Input */}
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          placeholder="Create a password"
-          value={formData.password}
-          onChangeText={(text) => setFormData({ ...formData, password: text })}
-          secureTextEntry
-          style={styles.input}
-          placeholderTextColor="#9ca3af"
-        />
-
-        {/* Confirm Password Input */}
-        <Text style={styles.label}>Confirm Password</Text>
-        <TextInput
-          placeholder="Confirm your password"
-          value={formData.confirmPassword}
-          onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
-          secureTextEntry
-          style={styles.input}
-          placeholderTextColor="#9ca3af"
-        />
-
-        {/* Age Section */}
-        <Text style={styles.label}>Age</Text>
-        <View style={styles.chipContainer}>
-          {['<18', '18-25', '26-35', '45+'].map((age) => (
-            <Chip
-              key={age}
-              label={age}
-              isSelected={formData.age === age}
-              onPress={() => handleChipPress('age', age)}
-            />
-          ))}
-        </View>
-
-        {/* Gender Section */}
-        <Text style={styles.label}>Gender</Text>
-        <View style={styles.chipContainer}>
-          {['Male', 'Female', 'Other'].map((gender) => (
-            <Chip
-              key={gender}
-              label={gender}
-              isSelected={formData.gender === gender}
-              onPress={() => handleChipPress('gender', gender)}
-            />
-          ))}
-        </View>
-
-        {/* Occupation Section */}
-        <Text style={styles.label}>What do you do?</Text>
-        <View style={styles.chipContainer}>
-          {['College Student', 'Working Professional', 'School Student', 'Others'].map(
-            (occupation) => (
-              <Chip
-                key={occupation}
-                label={occupation}
-                isSelected={formData.occupation === occupation}
-                onPress={() => handleChipPress('occupation', occupation)}
-              />
-            )
-          )}
-        </View>
-
-        {/* Body Shape Section */}
-        <Text style={styles.label}>Body Shape</Text>
-        <View style={styles.chipContainer}>
-          {['Hourglass', 'Apple', 'Pear', 'Rectangle'].map(
-            (bodyShape) => (
-              <Chip
-                key={bodyShape}
-                label={bodyShape}
-                isSelected={formData.bodyShape === bodyShape}
-                onPress={() => handleChipPress('bodyShape', bodyShape)}
-              />
-            )
-          )}
-        </View>
-
-        {/* Body Size Section */}
-        <Text style={styles.label}>Body Size</Text>
-        <View style={styles.chipContainer}>
-          {['Small', 'Medium', 'Large'].map((bodySize) => (
-            <Chip
-              key={bodySize}
-              label={bodySize}
-              isSelected={formData.bodySize === bodySize}
-              onPress={() => handleChipPress('bodySize', bodySize)}
-            />
-          ))}
-        </View>
-
-        {/* Skin Tone Section */}
-        <Text style={styles.label}>Skin Tone</Text>
-        <View style={styles.chipContainer}>
-          {['Fair', 'Medium', 'Dark'].map((skinTone) => (
-            <Chip
-              key={skinTone}
-              label={skinTone}
-              isSelected={formData.skinTone === skinTone}
-              onPress={() => handleChipPress('skinTone', skinTone)}
-            />
-          ))}
-        </View>
-
-        {/* Marketplace Section */}
-        <Text style={styles.label}>Preferred Marketplace</Text>
-        <View style={styles.chipContainer}>
-          {['Amazon', 'Flipkart', 'Mesho', 'Myntra', 'Ajio', 'The Soul Store'].map(
-            (marketplace) => (
-              <Chip
-                key={marketplace}
-                label={marketplace}
-                isSelected={formData.marketplace === marketplace}
-                onPress={() => handleChipPress('marketplace', marketplace)}
-              />
-            )
-          )}
-        </View>
-
-        {/* Styles Section */}
-        <Text style={styles.label}>Preferred Styles</Text>
-        <View style={styles.chipContainer}>
-          {['Formal', 'Casual', 'Ethnic'].map((styles) => (
-            <Chip
-              key={styles}
-              label={styles}
-              isSelected={formData.styles === styles}
-              onPress={() => handleChipPress('styles', styles)}
-            />
-          ))}
-        </View>
-        
-        <View style={{ height: 100 }} />
+        <Text style={styles.progress}>Step {currentStep} of 4</Text>
+        {renderStep()}
       </ScrollView>
-
-      {/* Footer Buttons */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.button} onPress={handleSignup}>
-          <Text style={styles.buttonText}>Create account</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => router.push('/auth/login')}
-        >
-          <Text style={styles.secondaryButtonText}>Back to login</Text>
-        </TouchableOpacity>
+        {currentStep > 1 && (
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleBack}>
+            <Text style={styles.secondaryButtonText}>Back</Text>
+          </TouchableOpacity>
+        )}
+        <View style={styles.spacer} />
+        {currentStep < 4 ? (
+          <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+            <Text style={styles.buttonText}>Next</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.nextButton} onPress={handleSignup}>
+            <Text style={styles.buttonText}>Create account</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -293,16 +326,18 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     padding: 24,
+    flexGrow: 1,
+  },
+  progress: {
+    fontSize: 16,
+    color: '#4b5563',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     color: '#1f2937',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#4b5563',
     marginBottom: 24,
   },
   label: {
@@ -315,23 +350,23 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
     backgroundColor: '#f9fafb',
+    marginBottom: 16,
   },
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
+    gap: 12,
   },
   chip: {
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   inactiveChip: {
     backgroundColor: '#f3f4f6',
@@ -350,6 +385,29 @@ const styles = StyleSheet.create({
   activeChipText: {
     color: '#ffffff',
   },
+  sliderContainer: {
+    marginTop: 16,
+  },
+  slider: {
+    height: 40,
+  },
+  skinSwatchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  skinToneLabel: {
+    fontSize: 16,
+    color: '#374151',
+    marginRight: 12,
+  },
+  skinSwatch: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -359,26 +417,35 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
     padding: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  button: {
+  spacer: {
+    flex: 1,
+  },
+  nextButton: {
     backgroundColor: '#1f2937',
     paddingVertical: 16,
+    paddingHorizontal: 24,
     borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 12,
+  },
+  secondaryButton: {
+    backgroundColor: 'rgba(243, 244, 246, 0.7)',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
   },
   buttonText: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
-  secondaryButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
   secondaryButtonText: {
     color: '#4b5563',
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
