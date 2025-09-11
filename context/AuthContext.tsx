@@ -1,15 +1,14 @@
-// context/AuthContext.tsx
+import type { Session, User } from '@supabase/supabase-js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Session, User } from '@supabase/supabase-js';
 
 type AuthContextType = {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<any>;
-  signIn: (email: string, password: string) => Promise<any>;
-  signOut: () => Promise<any>;
+  signUp: (email: string, password: string) => Promise<{ data: any; error: any | null }>;
+  signIn: (email: string, password: string) => Promise<{ data: any; error: any | null }>;
+  signOut: () => Promise<{ error: any | null }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,15 +19,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // get initial session
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      setSession(data.session ?? null);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
-    })();
+    const getInitialSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session ?? null);
+        setUser(data.session?.user ?? null);
+      } catch (error) {
+        console.error('Error fetching initial session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    getInitialSession();
 
-    // listen to auth changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session ?? null);
       setUser(session?.user ?? null);
