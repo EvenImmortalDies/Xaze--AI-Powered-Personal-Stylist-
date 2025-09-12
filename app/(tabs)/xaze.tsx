@@ -3,8 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  FlatList,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -12,7 +14,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Dimensions,
 } from 'react-native';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 const supabaseUrl = "https://xetomtmbtiqwfisynrrl.supabase.co";
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhldG9tdG1idGlxd2Zpc3lucnJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg5NDMsImV4cCI6MjA3MjkyNDk0M30.eJNpLnTwzLyCIEVjwSzh3K1N4Y0mA9HV914pY6q3nRo";
@@ -26,6 +31,7 @@ export default function XazeChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [searchedProducts, setSearchedProducts] = useState([]);
   const [isChatMinimized, setIsChatMinimized] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const scrollViewRef = useRef(null);
   const { query } = useLocalSearchParams();
   const router = useRouter();
@@ -54,13 +60,14 @@ export default function XazeChat() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .ilike('name', `%${searchQuery}%`);
+        .ilike('name', `%${searchQuery}%`)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error("Supabase search error:", error);
         setSearchedProducts([]);
       } else {
-        setSearchedProducts(data);
+        setSearchedProducts(data || []);
       }
 
       const promptText = data && data.length > 0
@@ -77,6 +84,10 @@ export default function XazeChat() {
           contents: [{ parts: [{ text: promptText }] }],
         }),
       });
+
+      if (!geminiResponse.ok) {
+        throw new Error(`Gemini API error: ${geminiResponse.status}`);
+      }
 
       const geminiData = await geminiResponse.json();
       const aiReply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I didn't understand that. Please try again.";
@@ -113,6 +124,7 @@ export default function XazeChat() {
 
     setMessages(prev => [...prev, newUserMessage]);
     setSearchedProducts([]);
+    setSelectedProduct(null);
     await handleSearchAndGemini(inputMessage);
     setInputMessage('');
   }, [inputMessage, handleSearchAndGemini]);
@@ -121,11 +133,123 @@ export default function XazeChat() {
     setIsChatMinimized(!isChatMinimized);
   };
 
-  const isSearchMode = searchedProducts.length > 0;
+  const handleProductPress = (product) => {
+    setSelectedProduct(product);
+  };
+
+  const handleBackToGrid = () => {
+    setSelectedProduct(null);
+  };
+
+  const handleBuyNowPress = (productLink) => {
+    if (productLink) {
+      Linking.openURL(productLink).catch(err => {
+        console.error("Failed to open URL:", err);
+      });
+    }
+  };
+
+  const isSearchMode = searchedProducts.length > 0 && !selectedProduct;
 
   useEffect(() => {
-    router.setParams({ hideTabBar: isSearchMode });
-  }, [isSearchMode, router]);
+    router.setParams({ hideTabBar: isSearchMode || !!selectedProduct });
+  }, [isSearchMode, selectedProduct, router]);
+
+  // Render product grid item
+  const renderProductItem = ({ item }) => (
+    <TouchableOpacity onPress={() => handleProductPress(item)} style={styles.productCard}>
+      <Image
+        source={{ uri: item.image_url1 || PLACEHOLDER_IMAGE }}
+        style={styles.productImage}
+        resizeMode="cover"
+      />
+      <View style={styles.productDetails}>
+        <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+        <Text style={styles.productPrice}>${item.price}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  // Render product details
+  const renderProductDetails = () => {
+    if (!selectedProduct) return null;
+
+    // Collect all available image URLs
+    const images = [];
+    for (let i = 1; i <= 6; i++) {
+      const imageUrl = selectedProduct[`image_url${i}`];
+      if (imageUrl && imageUrl.trim() !== '') {
+        images.push(imageUrl);
+      }
+    }
+
+    const imageWidth = screenWidth;
+    const imageHeight = imageWidth * 0.8; // Aspect ratio optimization
+
+    return (
+      <View style={styles.detailsContainer}>
+        {/* Back Button */}
+        <TouchableOpacity onPress={handleBackToGrid} style={styles.backButton}>
+          <AntDesign name="arrowleft" size={24} color="#333" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+
+        <ScrollView 
+          style={styles.detailsScrollView} 
+          contentContainerStyle={{ 
+            paddingBottom: isChatMinimized ? 100 : 250 
+          }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Image Gallery */}
+          {images.length > 0 ? (
+            <FlatList
+              data={images}
+              keyExtractor={(item, index) => `img-${index}`}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <Image source={{ uri: item }} style={[styles.detailsImage, { width: imageWidth, height: imageHeight }]} resizeMode="contain" />
+              )}
+              style={styles.detailsImageGallery}
+              contentContainerStyle={{ paddingHorizontal: 20 }}
+              getItemLayout={(data, index) => ({
+                length: imageWidth,
+                offset: imageWidth * index,
+                index,
+              })}
+            />
+          ) : (
+            <Image source={{ uri: PLACEHOLDER_IMAGE }} style={styles.detailsImage} resizeMode="contain" />
+          )}
+
+          <View style={styles.detailsContent}>
+            <Text style={styles.detailsName}>{selectedProduct.name}</Text>
+            <Text style={styles.detailsPrice}>${selectedProduct.price}</Text>
+            {selectedProduct.brand && <Text style={styles.detailsInfo}>Brand: {selectedProduct.brand}</Text>}
+            {selectedProduct.category && <Text style={styles.detailsInfo}>Category: {selectedProduct.category}</Text>}
+            {selectedProduct.color && <Text style={styles.detailsInfo}>Color: {selectedProduct.color}</Text>}
+            {selectedProduct.gender_target && <Text style={styles.detailsInfo}>Target: {selectedProduct.gender_target}</Text>}
+            {selectedProduct.style && <Text style={styles.detailsInfo}>Style: {selectedProduct.style}</Text>}
+            {selectedProduct.description && (
+              <Text style={styles.detailsDescription}>{selectedProduct.description}</Text>
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Buy Now Button */}
+        {selectedProduct.link && (
+          <TouchableOpacity
+            style={styles.buyButton}
+            onPress={() => handleBuyNowPress(selectedProduct.link)}
+          >
+            <Text style={styles.buyButtonText}>Buy Now</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   return (
     <KeyboardAvoidingView
@@ -138,7 +262,9 @@ export default function XazeChat() {
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
           <AntDesign name="arrowleft" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isSearchMode ? "Xaze" : (query || 'Chat with Xaze')}</Text>
+        <Text style={styles.headerTitle}>
+          {selectedProduct ? selectedProduct.name : (isSearchMode ? "Xaze" : (query || 'Chat with Xaze'))}
+        </Text>
         <TouchableOpacity style={styles.headerButton}>
           <Feather name="bell" size={24} color="#333" />
         </TouchableOpacity>
@@ -147,26 +273,22 @@ export default function XazeChat() {
         </TouchableOpacity>
       </View>
 
-      {/* Main Content Area - Search Results behind */}
+      {/* Main Content Area */}
       <View style={styles.mainContent}>
-        {isSearchMode ? (
-          <ScrollView style={styles.searchResultsContainer} contentContainerStyle={{ paddingBottom: 200 }}>
-            <View style={styles.productGrid}>
-              {searchedProducts.map((product) => (
-                <View key={product.id} style={styles.productCard}>
-                  <Image
-                    source={{ uri: product.image_url || PLACEHOLDER_IMAGE }}
-                    style={styles.productImage}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.productDetails}>
-                    <Text style={styles.productName}>{product.name}</Text>
-                    <Text style={styles.productPrice}>${product.price}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </ScrollView>
+        {selectedProduct ? (
+          renderProductDetails()
+        ) : isSearchMode ? (
+          <FlatList
+            data={searchedProducts}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderProductItem}
+            numColumns={2}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={10}
+          />
         ) : (
           <View style={styles.emptyChatBackground} />
         )}
@@ -266,48 +388,114 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F3F4F6',
   },
-  searchResultsContainer: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  productGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  listContent: {
+    paddingHorizontal: 8,
+    paddingVertical: 16,
   },
   productCard: {
-    width: '48%',
+    flex: 1,
+    margin: 4,
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 8,
-    marginBottom: 16,
+    padding: 12,
+    alignItems: 'center',
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    alignItems: 'center',
   },
   productImage: {
     width: '100%',
-    height: 150,
+    height: 180,
     borderRadius: 8,
     marginBottom: 8,
   },
   productDetails: {
     alignItems: 'center',
+    flex: 1,
   },
   productName: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
     textAlign: 'center',
+    marginBottom: 4,
   },
   productPrice: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4F46E5',
+  },
+  detailsContainer: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    zIndex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 20,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginLeft: 4,
+  },
+  detailsScrollView: {
+    flex: 1,
+    marginTop: 60,
+  },
+  detailsImageGallery: {
+    height: 400,
+  },
+  detailsImage: {
+    height: 400,
+  },
+  detailsContent: {
+    padding: 20,
+    backgroundColor: 'white',
+  },
+  detailsName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  detailsPrice: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#4F46E5',
+    marginBottom: 12,
+  },
+  detailsInfo: {
+    fontSize: 16,
     color: '#6B7280',
-    marginTop: 4,
+    marginBottom: 6,
+  },
+  detailsDescription: {
+    fontSize: 16,
+    color: '#374151',
+    lineHeight: 24,
+    marginTop: 12,
+  },
+  buyButton: {
+    backgroundColor: '#4F46E5',
+    paddingVertical: 16,
+    borderRadius: 12,
+    margin: 20,
+    alignItems: 'center',
+  },
+  buyButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   chatPopup: {
     position: 'absolute',
@@ -315,10 +503,11 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     backgroundColor: 'white',
-    borderRadius: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     marginBottom: 16,
@@ -329,7 +518,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
@@ -350,8 +539,8 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     marginBottom: 12,
-    padding: 10,
-    borderRadius: 12,
+    padding: 12,
+    borderRadius: 16,
     maxWidth: '80%',
   },
   userMessage: {
@@ -380,19 +569,19 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 40,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    backgroundColor: '#F3F4F6',
+    height: 44,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
     borderWidth: 1,
     borderColor: '#E5E7EB',
     color: '#1F2937',
     marginRight: 8,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#4F46E5',
     justifyContent: 'center',
     alignItems: 'center',
@@ -408,7 +597,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: 'white',
     borderRadius: 20,
     elevation: 5,
