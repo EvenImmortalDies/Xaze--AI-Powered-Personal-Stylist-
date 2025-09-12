@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#1F2937',
-    textAlign: 'center',
+    textAlign: 'left',
   },
   mainContent: {
     flex: 1,
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#4F46E5',
+    color: '#4b4b51ff',
   },
   detailsContainer: {
     flex: 1,
