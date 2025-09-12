@@ -166,6 +166,10 @@ export default function XazeChat() {
       <View style={styles.productDetails}>
         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
         <Text style={styles.productPrice}>${item.price}</Text>
+        <View style={styles.productRating}>
+          <AntDesign name="star" size={16} color="#FFD700" />
+          <Text style={styles.ratingText}>4.5</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -184,24 +188,22 @@ export default function XazeChat() {
     }
 
     const imageWidth = screenWidth;
-    const imageHeight = imageWidth * 0.8; // Aspect ratio optimization
+    const imageHeight = imageWidth * 0.8;
 
     return (
       <View style={styles.detailsContainer}>
-        {/* Back Button */}
         <TouchableOpacity onPress={handleBackToGrid} style={styles.backButton}>
           <AntDesign name="arrowleft" size={24} color="#333" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
-        <ScrollView 
-          style={styles.detailsScrollView} 
-          contentContainerStyle={{ 
-            paddingBottom: isChatMinimized ? 100 : 250 
+        <ScrollView
+          style={styles.detailsScrollView}
+          contentContainerStyle={{
+            paddingBottom: isChatMinimized ? 100 : 250,
           }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Image Gallery */}
           {images.length > 0 ? (
             <FlatList
               data={images}
@@ -212,7 +214,6 @@ export default function XazeChat() {
               renderItem={({ item }) => (
                 <Image source={{ uri: item }} style={[styles.detailsImage, { width: imageWidth, height: imageHeight }]} resizeMode="contain" />
               )}
-              style={styles.detailsImageGallery}
               contentContainerStyle={{ paddingHorizontal: 20 }}
               getItemLayout={(data, index) => ({
                 length: imageWidth,
@@ -227,24 +228,22 @@ export default function XazeChat() {
           <View style={styles.detailsContent}>
             <Text style={styles.detailsName}>{selectedProduct.name}</Text>
             <Text style={styles.detailsPrice}>${selectedProduct.price}</Text>
+            <View style={styles.detailsRating}>
+              <AntDesign name="star" size={18} color="#FFD700" />
+              <Text style={styles.ratingText}>4.5 (120 reviews)</Text>
+            </View>
             {selectedProduct.brand && <Text style={styles.detailsInfo}>Brand: {selectedProduct.brand}</Text>}
             {selectedProduct.category && <Text style={styles.detailsInfo}>Category: {selectedProduct.category}</Text>}
             {selectedProduct.color && <Text style={styles.detailsInfo}>Color: {selectedProduct.color}</Text>}
             {selectedProduct.gender_target && <Text style={styles.detailsInfo}>Target: {selectedProduct.gender_target}</Text>}
             {selectedProduct.style && <Text style={styles.detailsInfo}>Style: {selectedProduct.style}</Text>}
-            {selectedProduct.description && (
-              <Text style={styles.detailsDescription}>{selectedProduct.description}</Text>
-            )}
+            {selectedProduct.description && <Text style={styles.detailsDescription}>{selectedProduct.description}</Text>}
           </View>
         </ScrollView>
 
-        {/* Buy Now Button */}
         {selectedProduct.link && (
-          <TouchableOpacity
-            style={styles.buyButton}
-            onPress={() => handleBuyNowPress(selectedProduct.link)}
-          >
-            <Text style={styles.buyButtonText}>Buy Now</Text>
+          <TouchableOpacity style={styles.buyButton} onPress={() => handleBuyNowPress(selectedProduct.link)}>
+            <Text style={styles.buyButtonText}>Add to Cart</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -257,7 +256,6 @@ export default function XazeChat() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={60}
     >
-      {/* Custom Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
           <AntDesign name="arrowleft" size={24} color="#333" />
@@ -273,7 +271,6 @@ export default function XazeChat() {
         </TouchableOpacity>
       </View>
 
-      {/* Main Content Area */}
       <View style={styles.mainContent}>
         {selectedProduct ? (
           renderProductDetails()
@@ -294,7 +291,6 @@ export default function XazeChat() {
         )}
       </View>
 
-      {/* Chatbot Popup - Minimizable */}
       {!isChatMinimized ? (
         <View style={styles.chatPopup}>
           <View style={styles.chatHeader}>
@@ -378,7 +374,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#1F2937',
-    textAlign: 'left',
+    textAlign: 'center',
   },
   mainContent: {
     flex: 1,
@@ -393,39 +389,52 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   productCard: {
-    flex: 1,
+    width: '48%',
     margin: 4,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 10,
     alignItems: 'center',
-    elevation: 3,
+    elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   productImage: {
     width: '100%',
-    height: 180,
-    borderRadius: 8,
-    marginBottom: 8,
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 10,
   },
   productDetails: {
     alignItems: 'center',
-    flex: 1,
+    padding: 5,
   },
   productName: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 5,
   },
   productPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#4b4b51ff',
+    color: '#4B4B51',
+    marginBottom: 5,
+  },
+  productRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 5,
   },
   detailsContainer: {
     flex: 1,
@@ -439,7 +448,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 20,
   },
   backButtonText: {
@@ -460,49 +469,57 @@ const styles = StyleSheet.create({
   },
   detailsContent: {
     padding: 20,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   detailsName: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   detailsPrice: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#4F46E5',
-    marginBottom: 12,
+    marginBottom: 15,
+  },
+  detailsRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
   },
   detailsInfo: {
     fontSize: 16,
     color: '#6B7280',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   detailsDescription: {
     fontSize: 16,
     color: '#374151',
     lineHeight: 24,
-    marginTop: 12,
+    marginTop: 10,
   },
   buyButton: {
     backgroundColor: '#4F46E5',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 15,
+    borderRadius: 10,
     margin: 20,
     alignItems: 'center',
+    marginBottom: 20,
   },
   buyButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   chatPopup: {
     position: 'absolute',
     bottom: 0,
     left: 16,
     right: 16,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     elevation: 10,
@@ -599,7 +616,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     elevation: 5,
     shadowColor: '#000',

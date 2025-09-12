@@ -1,53 +1,56 @@
+// app/(tabs)/home.tsx
+import { Feather, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
-  Image,
-  Linking,
-  ScrollView,
+  Image, Platform, ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Feather, Ionicons } from '@expo/vector-icons';
-import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = "https://xetomtmbtiqwfisynrrl.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhldG9tdG1idGlxd2Zpc3lucnJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg5NDMsImV4cCI6MjA3MjkyNDk0M30.eJNpLnTwzLyCIEVjwSzh3K1N4Y0mA9HV914pY6q3nRo";
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-const PLACEHOLDER_IMAGE = 'https://placehold.co/400x400/E0E0E0/333333?text=No+Image';
-
-// Mock data for the static UI cards
-const actionCards = [
-  { id: '1', title: 'Pairing & Styling', image: 'https://i.ibb.co/6P2T8Yx/image.png' },
-  { id: '2', title: 'Products', image: 'https://i.ibb.co/gT7hS4Q/image.png' },
-  { id: '3', title: 'Outfits', image: 'https://i.ibb.co/VMyh2p8/image.png' },
-  { id: '4', title: 'Fit Check', image: 'https://i.ibb.co/r71fNfD/image.png' },
-  { id: '5', title: 'Accessorize', image: 'https://i.ibb.co/hgf8J9T/image.png' },
-  { id: '6', title: 'Will this suit me?', image: 'https://i.ibb.co/wCxD13P/image.png' },
+const QUICK_ACTIONS = [
+  { id: '1', title: 'Pairing & Styling', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_pairing.png' },
+  { id: '2', title: 'Products', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_products.png' },
+  { id: '3', title: 'Outfits', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_outfits.png' },
+  { id: '4', title: 'Fit Check', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_fitcheck.png' },
+  { id: '5', title: 'Accessorize', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_accessorize.png' },
+  { id: '6', title: 'Will this suit me?', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_suitme.png' },
 ];
 
-const categoryCards = [
-  { id: '1', title: 'T-shirts', image: 'https://i.ibb.co/Yc56L4H/image.png' },
-  { id: '2', title: 'Shirts', image: 'https://i.ibb.co/P4Jp8YF/image.png' },
-  { id: '3', title: 'Jeans', image: 'https://i.ibb.co/n6z412q/image.png' },
-  { id: '4', title: 'Trousers', image: 'https://i.ibb.co/Rz5fR2G/image.png' },
-  { id: '5', title: 'Shorts', image: 'https://i.ibb.co/Wc63V9P/image.png' },
-  { id: '6', title: 'Footwear', image: 'https://i.ibb.co/tZ5Q67w/image.png' },
+const CATEGORIES = [
+  { id: '1', label: 'T-shirts', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_tshirt.png' },
+  { id: '2', label: 'Shirts', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_shirts.png' },
+  { id: '3', label: 'Jeans', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_jeans.png' },
+  { id: '4', label: 'Trousers', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_trousers.png' },
+  { id: '5', label: 'Shorts', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_shorts.png' },
+  { id: '6', label: 'Footwear', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_footwear.png' },
 ];
+
+const OCCASIONS = [
+  { id: '1', label: 'College', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_college.png' },
+  { id: '2', label: 'Office', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_office.png' },
+  { id: '3', label: 'Travel', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_travel.png' },
+  { id: '4', label: 'Night Out', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_nightout.png' },
+  { id: '5', label: 'Festive', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_festive.png' },
+  { id: '6', label: 'Date', image: 'https://xetomtmbtiqwfisynrrl.supabase.co/storage/v1/object/public/home/home_date.png' },
+];
+
+const PRICE_BUCKETS = ['Under ₹500', 'Under ₹1000', 'Under ₹2000'];
 
 export default function TabsHome() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -55,231 +58,293 @@ export default function TabsHome() {
     }
   }, [user, loading]);
 
-  // --- Start of change ---
-  const handleSearch = () => {
-    if (searchQuery.trim() === '') {
-      return;
-    }
-    // Navigate to the 'xaze' page and pass the search query as a parameter.
-    router.push({
-      pathname: '/xaze', // Make sure this path is correct for your 'xaze' page.
-      params: { query: searchQuery.trim() }
-    });
-    setSearchQuery(''); // Clear the search bar
-  };
-  // --- End of change ---
-
   if (loading || !user) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text>Checking session…</Text>
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text style={{ marginTop: 8, color: '#6b7280' }}>Checking session…</Text>
       </View>
     );
   }
 
+  const searchSubmit = () => {
+    if (!query.trim()) return;
+    // navigate to search results page; adjust as per your router structure
+    router.push({ pathname: '/xaze', params: { query: query.trim() } });
+    setQuery('');
+  };
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.appTitle}>XAZE</Text>
-        <View style={styles.headerIcons}>
-          <Feather name="bell" size={24} color="#333" style={{ marginRight: 15 }} />
-          <Ionicons name="cart-outline" size={24} color="#333" />
+    <View style={styles.root}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.logo}>xaze</Text>
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.iconBtn}>
+              <Feather name="bell" size={20} color="#374151" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconBtn}>
+              <Ionicons name="cart-outline" size={22} color="#374151" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchBarContainer}>
-        <LinearGradient
-          colors={['#ffffff', '#f3f4f6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.searchGradient}
-        >
-          <Feather name="search" size={20} color="#9ca3af" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Ask for pairing ideas"
-            placeholderTextColor="#9ca3af"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-            editable={!isSearching}
-          />
-          <TouchableOpacity onPress={handleSearch}>
-            <Feather name="camera" size={24} color="#6b7280" />
-          </TouchableOpacity>
-        </LinearGradient>
-      </View>
+        {/* Search */}
+        <View style={styles.searchWrap}>
+          <LinearGradient colors={['#ffffff', '#f3f4f6']} style={styles.searchInner}>
+            <Feather name="search" size={18} color="#9ca3af" />
+            <TextInput
+              placeholder="Ask your personal stylist"
+              placeholderTextColor="#9ca3af"
+              style={styles.searchInput}
+              value={query}
+              onChangeText={setQuery}
+              returnKeyType="search"
+              onSubmitEditing={searchSubmit}
+            />
+            <TouchableOpacity onPress={searchSubmit} style={styles.cameraBtn}>
+              <Feather name="camera" size={18} color="#6b7280" />
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
 
-      {/* Action Cards */}
-      <View style={styles.sectionContainer}>
-        <View style={styles.gridContainer}>
-          {actionCards.map((card) => (
-            <TouchableOpacity key={card.id} style={styles.gridItem}>
-              <Image source={{ uri: card.image }} style={styles.gridImage} />
-              <Text style={styles.gridText}>{card.title}</Text>
+        {/* Quick Action Tiles (2 rows x 3 cols) */}
+        <View style={styles.actionsGrid}>
+          {QUICK_ACTIONS.map((card) => (
+            <TouchableOpacity key={card.id} style={styles.actionCard}>
+              <Text style={styles.actionTitle} numberOfLines={2}>{card.title}</Text>
+              <View style={styles.actionImageWrap}>
+              <Image source={{ uri: card.image }} style={styles.actionImage} />
+            </View>
+
             </TouchableOpacity>
           ))}
         </View>
-      </View>
 
-      {/* Style By Category */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Style By Category</Text>
-        <FlatList
-          horizontal
-          data={categoryCards}
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.categoryCard}>
-              <Image source={{ uri: item.image }} style={styles.categoryImage} />
-              <Text style={styles.categoryText}>{item.title}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
+        {/* Style By Category */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Style By Category</Text>
+          <FlatList
+            data={CATEGORIES}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(i) => i.id}
+            contentContainerStyle={styles.horizontalList}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.categoryCard}>
+                <Text style={styles.categoryLabel}>{item.label}</Text>
+                <Image source={{ uri: item.image }} style={styles.categoryImage} />
 
-      {/* Style By Occasions */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Style By Occasions</Text>
-        <FlatList
-          horizontal
-          data={categoryCards} // Reusing mock data for demonstration
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.categoryCard}>
-              <Image source={{ uri: item.image }} style={styles.categoryImage} />
-              <Text style={styles.categoryText}>{item.title}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-    </ScrollView>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+
+        {/* Style By Occasions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Style By Occasions</Text>
+          <FlatList
+            data={OCCASIONS}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(i) => i.id}
+            contentContainerStyle={styles.horizontalList}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.occasionCard}>
+                <Text style={styles.occasionLabel}>{item.label}</Text>
+<Image source={{ uri: item.image }} style={styles.occasionImage} />
+
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+
+        {/* Shop By Price */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Shop By Price</Text>
+          <FlatList
+            data={PRICE_BUCKETS}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(i) => i}
+            contentContainerStyle={styles.horizontalList}
+            renderItem={({ item }) => (
+              <View style={styles.priceCard}>
+                <Text style={styles.priceText}>{item}</Text>
+              </View>
+            )}
+          />
+        </View>
+
+        {/* spacing to avoid footer overlap */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </View>
   );
 }
 
+const GAP = 12;
+const ACTION_SIZE = (SCREEN_WIDTH - 16 * 2 - GAP * 2) / 3; // three columns
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 16,
-    paddingTop: 60,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
+  root: { flex: 1, backgroundColor: '#fff' },
+  scrollContent: { paddingTop: Platform.OS === 'android' ? 36 : 56, paddingHorizontal: 16, paddingBottom: 20 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  /* Header */
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  logo: { fontSize: 32, fontWeight: '800', color: '#111827' },
+  headerRight: { flexDirection: 'row', alignItems: 'center' },
+  iconBtn: { marginLeft: 8, padding: 8, borderRadius: 10 },
+
+  /* Search */
+  searchWrap: { marginBottom: 16 },
+  searchInner: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
-  },
-  appTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#1f2937',
-  },
-  headerIcons: {
-    flexDirection: 'row',
-  },
-  searchBarContainer: {
-    height: 50,
-    borderRadius: 25,
-    overflow: 'hidden',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 28,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: 20,
-  },
-  searchGradient: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
     backgroundColor: '#fff',
   },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    paddingHorizontal: 10,
-    fontSize: 16,
-    color: '#1f2937',
-  },
-  sectionContainer: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: 16,
-  },
-  gridContainer: {
+  searchInput: { flex: 1, marginHorizontal: 10, fontSize: 15, color: '#111827' },
+  cameraBtn: { padding: 6 },
+
+  /* Quick actions grid 3 cols */
+  actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: GAP,
+    marginBottom: 22,
   },
-  gridItem: {
-    width: '32%',
-    aspectRatio: 1,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    justifyContent: 'flex-end',
+  actionCard: {
+    width: ACTION_SIZE,
+    height: ACTION_SIZE,
+    borderRadius: 14,
+    backgroundColor: '#f8fafc',
     alignItems: 'center',
-    padding: 8,
+    justifyContent: 'flex-start', 
+    padding: 10,
     overflow: 'hidden',
   },
-  gridImage: {
-    width: '95%',
-    height: '95%',
-    resizeMode: 'contain',
+  actionImageWrap: {
     position: 'absolute',
-    bottom: 0,
-  },
-  gridText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1f2937',
-    textAlign: 'center',
-    zIndex: 1,
-    position: 'absolute',
-    top: 8,
+    top: 20,
     left: 8,
-  },
-  categoryCard: {
-    width: 80,
-    height: 100,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    marginRight: 12,
-    justifyContent: 'flex-end',
+    right: 8,
+    bottom: 8,
     alignItems: 'center',
-    padding: 8,
+    justifyContent: 'center',
   },
-  categoryImage: {
-    width: '90%',
-    height: '90%',
+  actionImage: {
+    width: '100%',
+    height: '80%',
     resizeMode: 'contain',
-    position: 'absolute',
-    bottom: 0,
+    marginTop: 25,  
   },
-  categoryText: {
-    fontSize: 12,
+  actionTitle: { 
+    fontSize: 12, 
+    fontWeight: '600', 
+    color: '#111827', 
+    textAlign: 'center', 
+    marginBottom: 6
+  },
+
+  /* Sections */
+  section: { marginBottom: 18 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 12 },
+
+  /* Horizontal lists */
+  horizontalList: { paddingLeft: 2, paddingRight: 8 },
+
+  /* Category small cards */
+  categoryCard: {
+    width: 84,
+    height: 104,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'flex-start', 
+    paddingTop: 8,                
+    overflow: 'hidden',
+  },
+  categoryImage: { 
+    width: '90%', 
+    height: '65%', 
+    resizeMode: 'contain'
+  },
+
+  categoryLabel: { 
+    fontSize: 12, 
+    fontWeight: '600', 
+    color: '#111827', 
+    marginBottom: 6               // ⬅ add space between text and image
+  },
+  /* Occasion larger cards */
+  occasionCard: {
+    width: 118,
+    height: 160,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    marginRight: 12,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-start', // ⬅ changed
+    paddingTop: 10,               // ⬅ add padding top
+  },
+  occasionImage: {
+    width: '100%',
+    height: '70%',
+    resizeMode: 'cover'
+  },
+  occasionLabel: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#1f2937',
-    textAlign: 'center',
-    zIndex: 1,
-    position: 'absolute',
-    top: 8,
+    color: '#111827',
+    marginBottom: 8               // ⬅ add spacing
   },
+
+  /* Price chips */
+  priceCard: {
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 18,
+    paddingHorizontal: 22,
+    borderRadius: 16,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  priceText: { fontSize: 16, fontWeight: '700', color: '#111827' },
+
+  /* Footer Tabs */
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 8,
+    height: 70,
+    marginHorizontal: 12,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 6,
+  },
+  tabItem: { alignItems: 'center', justifyContent: 'center' },
+  tabLabel: { fontSize: 12, marginTop: 4, fontWeight: '600', color: '#111827' },
+  tabLabelInactive: { fontSize: 12, marginTop: 4, color: '#6b7280' },
 });
