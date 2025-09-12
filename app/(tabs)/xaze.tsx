@@ -11,7 +11,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 
 const supabaseUrl = "https://xetomtmbtiqwfisynrrl.supabase.co";
@@ -25,27 +25,24 @@ export default function XazeChat() {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [searchedProducts, setSearchedProducts] = useState([]);
+  const [isChatMinimized, setIsChatMinimized] = useState(false);
   const scrollViewRef = useRef(null);
   const { query } = useLocalSearchParams();
   const router = useRouter();
 
-  // Scroll to the end of the chat
   useEffect(() => {
     if (scrollViewRef.current) {
       scrollViewRef.current.scrollToEnd({ animated: true });
     }
   }, [messages]);
 
-  // This useEffect handles the initial query from the home page
   useEffect(() => {
     if (query) {
-      // Add the user's query as a message to the chat
       setMessages(prev => [...prev, {
         id: Math.random().toString(36).substring(7),
         text: query,
         user: { id: 1 },
       }]);
-      // Run the search and Gemini call for the initial query
       handleSearchAndGemini(query);
     }
   }, [query]);
@@ -54,8 +51,6 @@ export default function XazeChat() {
     setIsLoading(true);
     
     try {
-      // Step 1: Search the product in Supabase
-      // Removed .limit(1) to get all matching results
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -68,33 +63,28 @@ export default function XazeChat() {
         setSearchedProducts(data);
       }
 
-      const promptText = data && data.length > 0 ?
-        `I am looking for products like "${data[0].name}". Answer in very short with in a small few paragraph. Can you provide styling recommendations and pairing ideas for it?` :
-        `Can you provide fashion advice and recommendations for "${searchQuery}"? Don't response to useless question except fashion related.`;
+      const promptText = data && data.length > 0
+        ? `I am looking for products like "${data[0].name}". Answer in a concise paragraph with styling recommendations and pairing ideas.`
+        : `Provide fashion advice and recommendations for "${searchQuery}". Respond only to fashion-related queries.`;
 
-      // Step 2: Send the prompt to Gemini
-      // NOTE: Your API key is hardcoded here. For a production app, consider using environment variables.
       const apiKey = "AIzaSyCA6DjyXomC-P_cRNvgaxYVeAFqBaZg5Hk";
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
       const geminiResponse = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: promptText }] }],
         }),
       });
 
       const geminiData = await geminiResponse.json();
-      const aiReply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I didn’t understand that. Please try again.";
+      const aiReply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I didn't understand that. Please try again.";
 
-      // Step 3: Add Gemini's reply to the chat
       setMessages(prev => [...prev, {
         id: Math.random().toString(36).substring(7),
         text: aiReply,
-        user: { id: 2, name: 'Gemini' },
+        user: { id: 2, name: 'Alle' },
       }]);
 
     } catch (error) {
@@ -104,7 +94,7 @@ export default function XazeChat() {
         {
           id: Math.random().toString(36).substring(7),
           text: '⚠️ Network or API error, please try again.',
-          user: { id: 2, name: 'Gemini' },
+          user: { id: 2, name: 'Alle' },
         },
       ]);
     } finally {
@@ -122,32 +112,20 @@ export default function XazeChat() {
     };
 
     setMessages(prev => [...prev, newUserMessage]);
-    setSearchedProducts([]); // Clear previous search results
+    setSearchedProducts([]);
     await handleSearchAndGemini(inputMessage);
     setInputMessage('');
   }, [inputMessage, handleSearchAndGemini]);
-  
-  // This function would be passed down from a parent component (like your app's layout)
-  // to control the tab bar visibility based on the search results.
-  const handleTabBarVisibility = (isVisible) => {
-    // This is a placeholder. In a real Expo Router app, you would
-    // use a context or a global state to control the layout.
-    // e.g., using a global state manager or a context hook.
+
+  const toggleChatMinimize = () => {
+    setIsChatMinimized(!isChatMinimized);
   };
 
-  // Conditionally render based on whether search results are available
   const isSearchMode = searchedProducts.length > 0;
 
   useEffect(() => {
-    // This effect handles the tab bar visibility.
-    // In a real app, you would have a context hook here to update the state
-    // of the parent layout.
-    if (isSearchMode) {
-      handleTabBarVisibility(false);
-    } else {
-      handleTabBarVisibility(true);
-    }
-  }, [isSearchMode]);
+    router.setParams({ hideTabBar: isSearchMode });
+  }, [isSearchMode, router]);
 
   return (
     <KeyboardAvoidingView
@@ -160,7 +138,7 @@ export default function XazeChat() {
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
           <AntDesign name="arrowleft" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{searchedProducts.length > 0 ? "Search Results" : (query || 'Chat with Gemini')}</Text>
+        <Text style={styles.headerTitle}>{isSearchMode ? "Xaze" : (query || 'Chat with Xaze')}</Text>
         <TouchableOpacity style={styles.headerButton}>
           <Feather name="bell" size={24} color="#333" />
         </TouchableOpacity>
@@ -169,89 +147,91 @@ export default function XazeChat() {
         </TouchableOpacity>
       </View>
 
-      {/* Main Content Area */}
-      {isSearchMode ? (
-        <ScrollView style={styles.searchResultsContainer}>
-          <View style={styles.productGrid}>
-            {searchedProducts.map((product) => (
-              <View key={product.id} style={styles.productCard}>
-                <Image
-                  source={{ uri: product.image_url || PLACEHOLDER_IMAGE }}
-                  style={styles.productImage}
-                  resizeMode="cover"
-                />
-                <View style={styles.productDetails}>
-                  <Text style={styles.productName}>{product.name}</Text>
-                  <Text style={styles.productPrice}>${product.price}</Text>
+      {/* Main Content Area - Search Results behind */}
+      <View style={styles.mainContent}>
+        {isSearchMode ? (
+          <ScrollView style={styles.searchResultsContainer} contentContainerStyle={{ paddingBottom: 200 }}>
+            <View style={styles.productGrid}>
+              {searchedProducts.map((product) => (
+                <View key={product.id} style={styles.productCard}>
+                  <Image
+                    source={{ uri: product.image_url || PLACEHOLDER_IMAGE }}
+                    style={styles.productImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.productDetails}>
+                    <Text style={styles.productName}>{product.name}</Text>
+                    <Text style={styles.productPrice}>${product.price}</Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyChatBackground} />
+        )}
+      </View>
+
+      {/* Chatbot Popup - Minimizable */}
+      {!isChatMinimized ? (
+        <View style={styles.chatPopup}>
+          <View style={styles.chatHeader}>
+            <Text style={styles.chatTitle}>Chat with Xaze</Text>
+            <TouchableOpacity onPress={toggleChatMinimize} style={styles.closeButton}>
+              <AntDesign name="minus" size={24} color="#333" />
+            </TouchableOpacity>
           </View>
-        </ScrollView>
-      ) : (
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.chatMessagesContainer}
-          contentContainerStyle={styles.chatMessagesContent}
-        >
-          {messages.map(msg => (
-            <View
-              key={msg.id}
-              style={[
-                styles.messageContainer,
-                msg.user.id === 1 ? styles.userMessageContainer : styles.geminiMessageContainer,
-              ]}
-            >
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.chatContainer}
+            contentContainerStyle={styles.chatContent}
+          >
+            {messages.map(msg => (
               <View
+                key={msg.id}
                 style={[
-                  styles.messageBubble,
-                  msg.user.id === 1 ? styles.userBubble : styles.geminiBubble,
+                  styles.messageContainer,
+                  msg.user.id === 1 ? styles.userMessage : styles.alleMessage,
                 ]}
               >
-                <Text style={styles.messageText}>
-                  {msg.text}
-                </Text>
+                <Text style={styles.messageText}>{msg.text}</Text>
               </View>
-            </View>
-          ))}
-
-          {isLoading && (
-            <View style={styles.geminiMessageContainer}>
-              <View style={[styles.messageBubble, styles.geminiBubble]}>
-                <View style={styles.loadingDots}>
-                  <View style={[styles.dot, styles.dot1]} />
-                  <View style={[styles.dot, styles.dot2]} />
-                  <View style={[styles.dot, styles.dot3]} />
-                </View>
+            ))}
+            {isLoading && (
+              <View style={styles.alleMessage}>
+                <Text style={styles.loadingText}>Typing...</Text>
               </View>
-            </View>
-          )}
-        </ScrollView>
-      )}
-
-      {/* Input Container */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={inputMessage}
-          onChangeText={setInputMessage}
-          placeholder="Ask follow up..."
-          placeholderTextColor="#9CA3AF"
-          editable={!isLoading}
-          returnKeyType="send"
-          onSubmitEditing={onSend}
-        />
-        <TouchableOpacity
-          onPress={onSend}
-          disabled={isLoading || !inputMessage.trim()}
-          style={[styles.sendButton, (isLoading || !inputMessage.trim()) && styles.disabledButton]}
-        >
-          <AntDesign name="arrowup" size={20} color="white" />
+            )}
+          </ScrollView>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              value={inputMessage}
+              onChangeText={setInputMessage}
+              placeholder="Ask follow up..."
+              placeholderTextColor="#9CA3AF"
+              editable={!isLoading}
+              returnKeyType="send"
+              onSubmitEditing={onSend}
+            />
+            <TouchableOpacity
+              onPress={onSend}
+              disabled={isLoading || !inputMessage.trim()}
+              style={[styles.sendButton, (isLoading || !inputMessage.trim()) && styles.disabledButton]}
+            >
+              <AntDesign name="arrowup" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.chatMinimized} onPress={toggleChatMinimize}>
+          <Text style={styles.minimizedText}>Chat with Xaze</Text>
+          <AntDesign name="plus" size={20} color="#333" />
         </TouchableOpacity>
-      </View>
+      )}
     </KeyboardAvoidingView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -278,104 +258,14 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     textAlign: 'center',
   },
-  chatMessagesContainer: {
+  mainContent: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    position: 'relative',
   },
-  chatMessagesContent: {
-    paddingBottom: 20,
-  },
-  messageContainer: {
-    flexDirection: 'row',
-    marginBottom: 12,
-  },
-  userMessageContainer: {
-    justifyContent: 'flex-end',
-  },
-  geminiMessageContainer: {
-    justifyContent: 'flex-start',
-  },
-  messageBubble: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  userBubble: {
-    borderTopRightRadius: 5,
-  },
-  geminiBubble: {
-    borderTopLeftRadius: 5,
-  },
-  messageText: {
-    color: '#1F2937',
-    fontSize: 14,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
-  input: {
+  emptyChatBackground: {
     flex: 1,
-    height: 48,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    color: '#1F2937',
-    marginRight: 8,
+    backgroundColor: '#F3F4F6',
   },
-  sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#4F46E5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  disabledButton: {
-    backgroundColor: '#D1D5DB',
-  },
-  loadingDots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 20,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#6B7280',
-    marginHorizontal: 2,
-  },
-  dot1: {
-    transform: [{ translateY: -2 }],
-  },
-  dot2: {
-    transform: [{ translateY: 0 }],
-  },
-  dot3: {
-    transform: [{ translateY: -2 }],
-  },
-  // Search Results Styles
   searchResultsContainer: {
     flex: 1,
     paddingHorizontal: 16,
@@ -385,19 +275,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingBottom: 20,
   },
   productCard: {
-    width: '48%', // A bit less than 50% to account for margin
-    backgroundColor: '#fff',
+    width: '48%',
+    backgroundColor: 'white',
     borderRadius: 12,
     padding: 8,
     marginBottom: 16,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
     alignItems: 'center',
   },
   productImage: {
@@ -417,8 +306,121 @@ const styles = StyleSheet.create({
   },
   productPrice: {
     fontSize: 14,
-    fontWeight: 'normal',
     color: '#6B7280',
     marginTop: 4,
+  },
+  chatPopup: {
+    position: 'absolute',
+    bottom: 0,
+    left: 16,
+    right: 16,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    marginBottom: 16,
+    maxHeight: '70%',
+    zIndex: 1000,
+  },
+  chatHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  chatTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  chatContainer: {
+    flex: 1,
+    padding: 12,
+  },
+  chatContent: {
+    paddingBottom: 12,
+  },
+  messageContainer: {
+    marginBottom: 12,
+    padding: 10,
+    borderRadius: 12,
+    maxWidth: '80%',
+  },
+  userMessage: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#E0E7FF',
+  },
+  alleMessage: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F9FAFB',
+  },
+  messageText: {
+    fontSize: 14,
+    color: '#1F2937',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  input: {
+    flex: 1,
+    height: 40,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    color: '#1F2937',
+    marginRight: 8,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#4F46E5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#D1D5DB',
+  },
+  chatMinimized: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    zIndex: 1000,
+  },
+  minimizedText: {
+    fontSize: 14,
+    color: '#1F2937',
+    fontWeight: '500',
   },
 });

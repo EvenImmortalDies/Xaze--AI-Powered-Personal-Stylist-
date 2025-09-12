@@ -9,7 +9,7 @@ const supabaseUrl = "https://xetomtmbtiqwfisynrrl.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhldG9tdG1idGlxd2Zpc3lucnJsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzM0ODk0MywiZXhwIjoyMDcyOTI0OTQzfQ.a4Oh7YnHyEqSrJrFNI3gYoGz0FUjE5aoMMCRKRDla_k";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Chip component for displaying marketplace preferences
+// Chip component for displaying marketplace preferences 
 const Chip = ({ label }) => (
   <View style={styles.chip}>
     <Text style={styles.chipText}>{label}</Text>
