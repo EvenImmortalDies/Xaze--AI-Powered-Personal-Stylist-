@@ -19,9 +19,8 @@ import {
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const supabaseUrl = "https://xetomtmbtiqwfisynrrl.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhldG9tdG1idGlxd2Zpc3lucnJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczNDg5NDMsImV4cCI6MjA3MjkyNDk0M30.eJNpLnTwzLyCIEVjwSzh3K1N4Y0mA9HV914pY6q3nRo";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseUrl = "Supabase URL";
+const supabaseAnonKey = "Anon KEY";
 
 const PLACEHOLDER_IMAGE = 'https://placehold.co/400x400/E0E0E0/333333?text=No+Image';
 
